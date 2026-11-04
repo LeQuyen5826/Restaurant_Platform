@@ -1,0 +1,13 @@
+# Database riêng cho Jenkins: cổng 5434, tự xóa sau khi chạy test, không đụng database làm việc (5433)
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: rb
+      POSTGRES_PASSWORD: rb
+      POSTGRES_DB: rb_ci
+    ports: ["5434:5432"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rb -d rb_ci"]
+      interval: 3s
+      retries: 20
