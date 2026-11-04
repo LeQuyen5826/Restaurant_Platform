@@ -62,3 +62,5 @@ frontend/src/pages/    public/ (4 trang), customer/ (đặt bàn, mã QR, gọi 
 - Quét QR bằng camera trên trang Check-in cần HTTPS (localhost thì được) và trình duyệt Chrome; trình duyệt khác dùng ô nhập mã.
 - Đổi `JWT_SECRET` và mật khẩu DB khi triển khai; xóa tài khoản seed.
 - Mọi thay đổi schema sau này: thêm migration Alembic mới, không sửa 0001/0002.
+
+<!-- thu CI -->
