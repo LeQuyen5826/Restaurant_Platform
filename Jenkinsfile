@@ -8,7 +8,7 @@ pipeline {
     disableConcurrentBuilds()   // chỉ một build dùng cổng 5434 tại một thời điểm
   }
   environment {
-    DATABASE_URL = 'postgresql+psycopg://rb:rb@localhost:5434/rb_ci'
+    DATABASE_URL = 'postgresql+psycopg://rb:rb@127.0.0.1:5434/rb_ci'
     JWT_SECRET   = 'ci-only-secret'
     CI_COMPOSE   = 'docker compose -p rbci -f docker-compose.ci.yml'
   }
@@ -36,9 +36,15 @@ pipeline {
     }
     stage('4. Integration test') {
       steps {
+        // Don container cu con sot lai tu build truoc
+        bat "%CI_COMPOSE% down -v"
         bat "%CI_COMPOSE% up -d --wait db"
+        // Cho cong 5434 tren host thuc su mo (healthy chi nghia la Postgres chay trong container)
+        bat 'powershell -NoProfile -Command "$ok=$false; for($i=0;$i -lt 30;$i++){ if((Test-NetConnection 127.0.0.1 -Port 5434 -WarningAction SilentlyContinue).TcpTestSucceeded){$ok=$true;break}; Start-Sleep -Seconds 2 }; if(-not $ok){ exit 1 }; Start-Sleep -Seconds 3"'
         dir('backend') {
-          bat '.venv\\Scripts\\alembic upgrade head'
+          retry(3) {
+            bat 'ping -n 4 127.0.0.1 >nul & .venv\\Scripts\\alembic upgrade head'
+          }
           bat '.venv\\Scripts\\python -m pytest -m integration --junitxml=integration.xml'
         }
       }
