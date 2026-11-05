@@ -64,3 +64,7 @@ frontend/src/pages/    public/ (4 trang), customer/ (đặt bàn, mã QR, gọi 
 - Mọi thay đổi schema sau này: thêm migration Alembic mới, không sửa 0001/0002.
 
 <!-- thu CI -->
+
+- Dat ban: ho tro 2 loai (chi ban, ban + mon).
+
+<!-- Nam thu nhanh booking -->
