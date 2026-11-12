@@ -68,3 +68,16 @@ frontend/src/pages/    public/ (4 trang), customer/ (đặt bàn, mã QR, gọi 
 - Dat ban: ho tro 2 loai (chi ban, ban + mon).
 
 <!-- Nam thu nhanh booking -->
+
+## CD: tá»± Ä‘á»™ng deploy khi merge vÃ o main
+
+Sau khi Pull Request Ä‘Æ°á»£c merge vÃ  nhÃ¡nh `main` xanh, stage **6. Deploy** trong `Jenkinsfile` cháº¡y `scripts/deploy.py`:
+
+1. Giá»¯ image Ä‘ang cháº¡y lÃ m báº£n dá»± phÃ²ng (`:previous`).
+2. Dá»±ng image má»›i vÃ  cháº¡y `docker-compose.deploy.yml` (project `rbprod`, tÃ¡ch khá»i mÃ´i trÆ°á»ng dev).
+3. Kiá»ƒm tra sá»‘ng qua cá»•ng web: trang chá»§, `/api/health`, `/api/public/home` (Ä‘á»c database).
+4. Há»ng thÃ¬ tá»± quay vá» báº£n trÆ°á»›c vÃ  bÃ¡o build FAILURE.
+
+Truy cáº­p báº£n Ä‘ang cháº¡y: http://localhost:8090. Máº­t kháº©u ngáº«u nhiÃªn náº±m á»Ÿ file `rb-deploy.env` trong thÆ° má»¥c `JENKINS_HOME` (khÃ´ng náº±m trong Git). Cháº¡y tay: `python scripts/deploy.py`.
+Äáº·t `SEED_DEMO=0` trong file Ä‘Ã³ Ä‘á»ƒ khÃ´ng náº¡p tÃ i khoáº£n demo. LÆ°u Ã½: quay vá» báº£n cÅ© khÃ´ng hoÃ n tÃ¡c migration database.
+

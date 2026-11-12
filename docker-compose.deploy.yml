@@ -1,0 +1,49 @@
+# Môi trường chạy thật (deploy) do Jenkins dựng sau khi main xanh.
+# Tách hẳn khỏi môi trường dev: project riêng "rbprod", volume riêng, chỉ mở 1 cổng ra ngoài (web).
+# Biến lấy từ file env do scripts/deploy.py tạo (JWT_SECRET, DB_PASSWORD, WEB_PORT, ...).
+name: rbprod
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: rb
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?thiếu DB_PASSWORD}
+      POSTGRES_DB: rb
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rb -d rb"]
+      interval: 5s
+      retries: 20
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    image: rbprod-backend:latest
+    environment:
+      DATABASE_URL: postgresql+psycopg://rb:${DB_PASSWORD}@db:5432/rb
+      JWT_SECRET: ${JWT_SECRET:?thiếu JWT_SECRET}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8090}
+      UPLOAD_DIR: /data/uploads
+      SEED_DEMO: ${SEED_DEMO:-1}
+    volumes: ["uploads:/data/uploads"]
+    depends_on:
+      db: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/api/health', timeout=3)"]
+      interval: 5s
+      retries: 30
+      start_period: 10s
+    restart: unless-stopped
+
+  web:
+    build: ./frontend
+    image: rbprod-web:latest
+    depends_on:
+      backend: { condition: service_healthy }
+    ports: ["${WEB_PORT:-8090}:80"]
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  uploads:
