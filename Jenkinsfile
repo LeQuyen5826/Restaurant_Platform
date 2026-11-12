@@ -1,10 +1,10 @@
-// Pipeline CI: Checkout -> Build -> Unit test -> Integration test -> Báo cáo
+// Pipeline CI/CD: Checkout -> Build -> Unit test -> Integration test -> Báo cáo -> Deploy (chỉ nhánh main)
 // Chạy trên Jenkins cài ở máy Windows có Git, Python 3.12+, Node 20+, Docker Desktop.
 pipeline {
   agent any
   options {
     timestamps()
-    timeout(time: 20, unit: 'MINUTES')
+    timeout(time: 30, unit: 'MINUTES')
     disableConcurrentBuilds()   // chỉ một build dùng cổng 5434 tại một thời điểm
   }
   environment {
@@ -36,10 +36,10 @@ pipeline {
     }
     stage('4. Integration test') {
       steps {
-        // Don container cu con sot lai tu build truoc
+        // Dọn container cũ còn sót lại từ build trước
         bat "%CI_COMPOSE% down -v"
         bat "%CI_COMPOSE% up -d --wait db"
-        // Cho cong 5434 tren host thuc su mo (healthy chi nghia la Postgres chay trong container)
+        // Chờ cổng 5434 trên host thực sự mở (healthy chỉ nghĩa là Postgres chạy trong container)
         bat 'powershell -NoProfile -Command "$ok=$false; for($i=0;$i -lt 30;$i++){ if((Test-NetConnection 127.0.0.1 -Port 5434 -WarningAction SilentlyContinue).TcpTestSucceeded){$ok=$true;break}; Start-Sleep -Seconds 2 }; if(-not $ok){ exit 1 }; Start-Sleep -Seconds 3"'
         dir('backend') {
           retry(3) {
@@ -58,9 +58,17 @@ pipeline {
     stage('5. Báo cáo') {
       steps { archiveArtifacts artifacts: 'backend/*.xml, frontend/dist/**', allowEmptyArchive: true }
     }
+    stage('6. Deploy') {
+      // Chỉ nhánh main (sau khi Pull Request được merge). Nhánh khác và Pull Request bỏ qua stage này.
+      when { branch 'main' }
+      steps {
+        // Dựng bản mới bằng docker-compose.deploy.yml, kiểm tra sống, tự quay về bản cũ nếu hỏng.
+        bat 'backend\\.venv\\Scripts\\python scripts\\deploy.py'
+      }
+    }
   }
   post {
-    success { echo 'SUCCESS: code hợp lệ, có thể merge'; script { notifyTeam('✅ SUCCESS') } }
+    success { echo 'SUCCESS: code hợp lệ (nhánh main thì đã deploy tại http://localhost:8090)'; script { notifyTeam('✅ SUCCESS') } }
     failure { echo 'FAILURE: xem log và báo cáo test để sửa'; script { notifyTeam('❌ FAILURE') } }
   }
 }
