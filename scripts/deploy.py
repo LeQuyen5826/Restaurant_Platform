@@ -12,6 +12,13 @@ import time
 import urllib.request
 from pathlib import Path
 
+# Jenkins trên Windows chạy Python với bảng mã cp1252: ép UTF-8 để in được tiếng Việt, không làm sập script.
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 ROOT = Path(__file__).resolve().parent.parent
 COMPOSE_FILE = ROOT / "docker-compose.deploy.yml"
 PROJECT = "rbprod"
@@ -51,7 +58,7 @@ def read_env(path: Path) -> dict:
 
 def run(cmd, check=True, capture=False):
     print("$", " ".join(str(c) for c in cmd), flush=True)
-    r = subprocess.run(cmd, cwd=ROOT, text=True, capture_output=capture)
+    r = subprocess.run(cmd, cwd=ROOT, text=True, encoding="utf-8", errors="replace", capture_output=capture)
     if capture and r.stdout:
         print(r.stdout)
     if check and r.returncode != 0:
