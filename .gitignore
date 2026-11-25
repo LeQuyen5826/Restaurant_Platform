@@ -9,3 +9,5 @@ uploads/
 *.xml
 mobile/
 .ruff_cache/
+
+sonarqube/.env
