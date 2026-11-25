@@ -1,5 +1,6 @@
-// Pipeline CI/CD: Checkout -> Build -> Unit test -> Integration test -> Báo cáo -> Deploy (chỉ nhánh main)
+// Pipeline CI/CD: Checkout -> Build -> Unit test -> Integration test -> SonarQube -> Quality Gate -> Báo cáo -> Deploy (chỉ nhánh main)
 // Chạy trên Jenkins cài ở máy Windows có Git, Python 3.12+, Node 20+, Docker Desktop.
+// SonarQube chạy bằng Docker ở http://localhost:9001 (xem sonarqube/docker-compose.sonarqube.yml), cần bật trước khi build nhánh main.
 pipeline {
   agent any
   options {
@@ -55,10 +56,32 @@ pipeline {
         }
       }
     }
-    stage('5. Báo cáo') {
+    stage('5. SonarQube') {
+      // Chỉ nhánh main: bản Community không phân tích riêng từng PR/nhánh.
+      when { branch 'main' }
+      steps {
+        script {
+          def scannerHome = tool 'sonar-scanner'
+          withSonarQubeEnv('sonarqube') {
+            bat "\"${scannerHome}\\bin\\sonar-scanner.bat\""
+          }
+        }
+      }
+    }
+    stage('6. Quality Gate') {
+      // Cần webhook SonarQube -> http://host.docker.internal:8081/sonarqube-webhook/
+      // Muốn chạy thử mà không chặn deploy khi chưa đạt: đổi abortPipeline thành false.
+      when { branch 'main' }
+      steps {
+        timeout(time: 5, unit: 'MINUTES') {
+          waitForQualityGate abortPipeline: true
+        }
+      }
+    }
+    stage('7. Báo cáo') {
       steps { archiveArtifacts artifacts: 'backend/*.xml, frontend/dist/**', allowEmptyArchive: true }
     }
-    stage('6. Deploy') {
+    stage('8. Deploy') {
       // Chỉ nhánh main (sau khi Pull Request được merge). Nhánh khác và Pull Request bỏ qua stage này.
       when { branch 'main' }
       steps {
